@@ -1,0 +1,12 @@
+{
+  "name": "reminder-bot",
+  "version": "1.0.0",
+  "description": "discord reminder bot",
+  "main": "index.js",
+  "repository": "https://github.com/frankali/reminder-bot",
+  "author": "frank",
+  "license": "MIT",
+  "dependencies": {
+    "eslint": "^7.7.0"
+  }
+}
