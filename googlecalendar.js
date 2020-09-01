@@ -14,7 +14,7 @@ const TOKEN_PATH = 'token.json';
 fs.readFile('credentials.json', (err, content) => {
   if (err) return console.log('Error loading client secret file:', err);
   // Authorize a client with credentials, then call the Google Calendar API.
-  authorize(JSON.parse(content), listEvents);
+  authorize(JSON.parse(content), getActionFromUser);
   //authorize(JSON.parse(content), addEvent);
 });
 
@@ -103,24 +103,24 @@ function listEvents(auth) {
  * Lists the next 10 events on the user's primary calendar.
  * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
  */
-function addEvent() {
+function addEvent(auth) {
   var event = {
   'summary': 'Google I/O 2015',
   'location': '800 Howard St., San Francisco, CA 94103',
   'description': 'A chance to hear more about Google\'s developer products.',
   'start': {
-    'dateTime': '2020-09-01T09:00:00-07:00',
-    'timeZone': 'America/Los_Angeles',
+    'dateTime': '2020-09-05T09:00:00-05:00',
+    'timeZone': 'America/New_York',
   },
   'end': {
-    'dateTime': '2020-09-01T17:00:00-07:00',
-    'timeZone': 'America/Los_Angeles',
+    'dateTime': '2020-09-05T17:00:00-05:00',
+    'timeZone': 'America/New_York',
   },
   'recurrence': [
-    'RRULE:FREQ=DAILY;COUNT=2'
+    'RRULE:FREQ=WEEKLY;INTERVAL=1'
   ],
   'attendees': [
-    {'email': 'lpage@example.com'},
+    {'email': 'frank.ali.ali@gmail.com'},
     {'email': 'sbrin@example.com'},
   ],
   'reminders': {
@@ -144,4 +144,30 @@ calendar.events.insert({
   console.log('Event created: %s', event.htmlLink);
 });
 }
-addEvent();
+
+function getActionFromUser(auth) {
+  const numberOfListedEvents = 100
+  console.log(`10 - Lists your ${numberOfListedEvents} first Google calendar events`)
+  // console.log(`11 - Lists your ${numberOfListedEvents} first Google calendar events from Today`)
+  console.log('20 - Inserts new event for tomorrow')
+  console.log('\n0 - Exit')
+  console.log('\n')
+  console.log('Choose an action:')
+
+  stdin.addListener("data", function(d) {
+    switch(Number(d)) {
+      case 10:
+        listEvents(auth)
+        break
+      // case 11:
+      //   listEvents(auth, numberOfListedEvents)
+      //   break
+      case 20:
+        addEvent(auth)
+        break
+      case 0:
+        process.exit()
+        break
+    }
+  });
+}
