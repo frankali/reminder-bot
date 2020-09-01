@@ -24,3 +24,9 @@ client.on('message', message => {
 
 // login to Discord with your app's token
 client.login(token);
+
+//single row
+// recurring : date : time :(exception: 9/5...)
+// single: 9/5 :..
+//auto run
+//loook into nodejs scheduelr

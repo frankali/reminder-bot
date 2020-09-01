@@ -4,13 +4,15 @@
   "description": "discord reminder bot",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "googlecal": "node googlecalendar.js"
   },
   "repository": "https://github.com/frankali/reminder-bot",
   "author": "frank",
   "license": "MIT",
   "dependencies": {
     "discord.js": "^12.3.1",
-    "eslint": "^7.7.0"
+    "eslint": "^7.7.0",
+    "googleapis": "^30.0.0"
   }
 }
