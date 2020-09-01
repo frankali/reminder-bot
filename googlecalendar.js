@@ -1,6 +1,8 @@
 const fs = require('fs');
 const readline = require('readline');
-const {google} = require('googleapis');
+const {
+  google
+} = require('googleapis');
 
 // If modifying these scopes, delete token.json.
 const SCOPES = ['https://www.googleapis.com/auth/calendar'];
@@ -25,14 +27,19 @@ fs.readFile('credentials.json', (err, content) => {
  * @param {function} callback The callback to call with the authorized client.
  */
 function authorize(credentials, callback) {
-  const {client_secret, client_id, redirect_uris} = credentials.installed;
+  const {
+    client_secret,
+    client_id,
+    redirect_uris
+  } = credentials.installed;
   const oAuth2Client = new google.auth.OAuth2(
-      client_id, client_secret, redirect_uris[0]);
+    client_id, client_secret, redirect_uris[0]);
 
   // Check if we have previously stored a token.
   fs.readFile(TOKEN_PATH, (err, token) => {
     if (err) return getAccessToken(oAuth2Client, callback);
-    oAuth2Client.setCredentials(JSON.parse(token));callback(oAuth2Client);
+    oAuth2Client.setCredentials(JSON.parse(token));
+    callback(oAuth2Client);
   });
 }
 
@@ -76,7 +83,10 @@ function getAccessToken(oAuth2Client, callback) {
  * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
  */
 function listEvents(auth) {
-  const calendar = google.calendar({version: 'v3', auth});
+  const calendar = google.calendar({
+    version: 'v3',
+    auth
+  });
   calendar.events.list({
     calendarId: 'primary',
     timeMin: (new Date()).toISOString(),
@@ -105,44 +115,43 @@ function listEvents(auth) {
  */
 function addEvent(auth) {
   var event = {
-  'summary': 'Google I/O 2015',
-  'location': '800 Howard St., San Francisco, CA 94103',
-  'description': 'A chance to hear more about Google\'s developer products.',
-  'start': {
-    'dateTime': '2020-09-05T09:00:00-05:00',
-    'timeZone': 'America/New_York',
-  },
-  'end': {
-    'dateTime': '2020-09-05T17:00:00-05:00',
-    'timeZone': 'America/New_York',
-  },
-  'recurrence': [
-    'RRULE:FREQ=WEEKLY;INTERVAL=1'
-  ],
-  'attendees': [
-    {'email': 'frank.ali.ali@gmail.com'},
-    {'email': 'sbrin@example.com'},
-  ],
-  'reminders': {
-    'useDefault': false,
-    'overrides': [
-      {'method': 'email', 'minutes': 24 * 60},
-      {'method': 'popup', 'minutes': 10},
+    'summary': 'Project-TBD: Meeting', //variable
+    'location': 'Discord: Project-TBD Channel',
+    'description': 'A Project TBD Meeting',
+    'start': {
+      'dateTime': '2020-09-05T02:00:00-05:00',
+      'timeZone': 'America/New_York',
+    },
+    'end': {
+      'dateTime': '2020-09-05T17:00:00-04:00',
+      'timeZone': 'America/New_York',
+    },
+    'recurrence': [
+      'RRULE:FREQ=WEEKLY;INTERVAL=1'
     ],
-  },
-};
-const calendar = google.calendar({version: 'v3', auth});
-calendar.events.insert({
-  auth : auth,
-  calendarId: 'primary',
-  resource: event,
-}, function(err, event) {
-  if (err) {
-    console.log('There was an error contacting the Calendar service: ' + err);
-    return;
-  }
-  console.log('Event created: %s', event.htmlLink);
-});
+    'attendees': [{
+        'email': 'test@gmail.com'
+      },
+      {
+        'email': 'sbrin@example.com'
+      },
+    ],
+  };
+  const calendar = google.calendar({
+    version: 'v3',
+    auth
+  });
+  calendar.events.insert({
+    auth: auth,
+    calendarId: 'primary',
+    resource: event,
+  }, function(err, event) {
+    if (err) {
+      console.log('There was an error contacting the Calendar service: ' + err);
+      return;
+    }
+    console.log('Event created: %s', event.htmlLink);
+  });
 }
 
 function getActionFromUser(auth) {
@@ -150,20 +159,24 @@ function getActionFromUser(auth) {
   console.log(`10 - Lists your ${numberOfListedEvents} first Google calendar events`)
   // console.log(`11 - Lists your ${numberOfListedEvents} first Google calendar events from Today`)
   console.log('20 - Inserts new event for tomorrow')
+  console.log('30 - Delete an event by ID')
   console.log('\n0 - Exit')
   console.log('\n')
   console.log('Choose an action:')
 
   stdin.addListener("data", function(d) {
-    switch(Number(d)) {
+    switch (Number(d)) {
       case 10:
         listEvents(auth)
         break
-      // case 11:
-      //   listEvents(auth, numberOfListedEvents)
-      //   break
+        // case 11:
+        //   listEvents(auth, numberOfListedEvents)
+        //   break
       case 20:
         addEvent(auth)
+        break
+      case 30:
+        deleteEvent(auth, eventId)
         break
       case 0:
         process.exit()
@@ -171,3 +184,22 @@ function getActionFromUser(auth) {
     }
   });
 }
+
+function deleteEvent(auth, evId) {
+  const calendar = google.calendar({version: 'v3', auth})
+
+  calendar.events.delete({
+    auth: auth,
+    calendarId: 'primary',
+    eventId: evId
+  }, (err, res) => {
+    if (err) return console.log(err)
+    if (res) {
+      console.log('Event deleted!')
+    }
+  })
+}
+
+//check for events at every day...
+// when new event is added, re-check events for reminders.. -> send out if happening that delayed
+// same for editEvent
