@@ -3,17 +3,19 @@ const readline = require('readline');
 const {google} = require('googleapis');
 
 // If modifying these scopes, delete token.json.
-const SCOPES = ['https://www.googleapis.com/auth/calendar.readonly'];
+const SCOPES = ['https://www.googleapis.com/auth/calendar'];
 // The file token.json stores the user's access and refresh tokens, and is
 // created automatically when the authorization flow completes for the first
 // time.
 const TOKEN_PATH = 'token.json';
+//addEvent();
 
 // Load client secrets from a local file.
 fs.readFile('credentials.json', (err, content) => {
   if (err) return console.log('Error loading client secret file:', err);
   // Authorize a client with credentials, then call the Google Calendar API.
   authorize(JSON.parse(content), listEvents);
+  //authorize(JSON.parse(content), addEvent);
 });
 
 /**
@@ -96,6 +98,11 @@ function listEvents(auth) {
   });
 }
 
+
+/**
+ * Lists the next 10 events on the user's primary calendar.
+ * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
+ */
 function addEvent() {
   var event = {
   'summary': 'Google I/O 2015',
@@ -131,10 +138,10 @@ calendar.events.insert({
   resource: event,
 }, function(err, event) {
   if (err) {
-    console.log('('There was an error contacting the Calendar service: ' + err);
+    console.log('There was an error contacting the Calendar service: ' + err);
     return;
   }
   console.log('Event created: %s', event.htmlLink);
 });
-
-  }
+}
+addEvent();
