@@ -1,8 +1,13 @@
 const fs = require('fs');
 const readline = require('readline');
+<<<<<<< HEAD
 const {
   google
 } = require('googleapis');
+=======
+const {google} = require('googleapis');
+const stdin = process.openStdin();
+>>>>>>> c48aa7a06b53ad2045a5439588998abc980f240b
 
 // If modifying these scopes, delete token.json.
 const SCOPES = ['https://www.googleapis.com/auth/calendar'];
