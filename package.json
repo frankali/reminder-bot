@@ -11,6 +11,7 @@
   "author": "frank",
   "license": "MIT",
   "dependencies": {
+    "axios": "^0.20.0",
     "discord.js": "^12.3.1",
     "eslint": "^7.7.0",
     "googleapis": "^30.0.0"

@@ -1,13 +1,9 @@
 const fs = require('fs');
 const readline = require('readline');
-<<<<<<< HEAD
-const {
-  google
-} = require('googleapis');
-=======
 const {google} = require('googleapis');
+const axios = require('axios');
 const stdin = process.openStdin();
->>>>>>> c48aa7a06b53ad2045a5439588998abc980f240b
+
 
 // If modifying these scopes, delete token.json.
 const SCOPES = ['https://www.googleapis.com/auth/calendar'];
@@ -104,8 +100,8 @@ function listEvents(auth) {
     if (events.length) {
       console.log('Upcoming 10 events:');
       events.map((event, i) => {
-        const start = event.start.dateTime || event.start.date;
-        console.log(`${start} - ${event.summary}`);
+        const start = event.start.dateTime || event.start.date; //convert this time to just "10PM"
+        console.log(`${start} - ${event.summary} - ${event.id} `);
       });
     } else {
       console.log('No upcoming events found.');
@@ -181,7 +177,11 @@ function getActionFromUser(auth) {
         addEvent(auth)
         break
       case 30:
-        deleteEvent(auth, eventId)
+        console.log('Enter event id')
+        stdin.addListener("data", function(d) {
+              convertedId = (String(d))
+              deleteEvent(auth, convertedId)
+        });
         break
       case 0:
         process.exit()
@@ -192,9 +192,8 @@ function getActionFromUser(auth) {
 
 function deleteEvent(auth, evId) {
   const calendar = google.calendar({version: 'v3', auth})
-
+  console.log(evId)
   calendar.events.delete({
-    auth: auth,
     calendarId: 'primary',
     eventId: evId
   }, (err, res) => {
