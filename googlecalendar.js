@@ -198,8 +198,8 @@ function updateEvent(auth, evId) {
       }
     });
 
-    var time1 = 'Sat Sep 12 2020  15:00:00 GMT+0500 (IST)'
-    var time2 = 'Sat Sep 12 2020  17:00:00 GMT+0500 (IST)'
+    var time1 = 'Sat Sep 12 2020  15:00:00 GMT-0400 (IST)'
+    var time2 = 'Sat Sep 12 2020  17:00:00 GMT-0400 (IST)'
     event.start.dateTime = DateTime.isoString(time1);
     event.end.dateTime = DateTime.isoString(time2);
   calendar.events.update({
