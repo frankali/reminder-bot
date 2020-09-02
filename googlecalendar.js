@@ -286,6 +286,17 @@ function getActionFromUser(auth) {
   });
 }
 
+function calendarAPIController(auth, userCmd, userArgs) {
+  switch(userCmd) {
+    case 'update':
+      updateEvent(userArgs[0], userArgs[1], userArgs[2], userArgs[3]);
+  }
+  if(userCmd === 'update') {
+    updateEvent
+  }
+  return status;
+}
+
 //check for events at every day...
 // when new event is added, re-check events for reminders.. -> send out if happening that delayed
 // same for editEvent
