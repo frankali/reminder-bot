@@ -1,6 +1,6 @@
 // require the discord.js module
 const Discord = require('discord.js');
-//const gCalendarAPI = require('./googlecalendar.js')
+const gCalendarAPI = require('./googlecalendar.js')
 
 const {
   prefix,
@@ -31,16 +31,19 @@ client.on('message', message => {
     message.channel.send('Use !cb-help for more information!');
   } else if (`${prefix}${command}` == `${prefix}cb-help`) {
     message.channel.send('To schedule an event use the following format: ');
-    message.channel.send('!create-event-reminder [event-name] [start time] [end time] [recurring-type]');
-    message.channel.send(`[event-name]: Test-Meeting`);
-    message.channel.send(`[start time]: Sat Sep 12 2020  15:00:00`);
-    message.channel.send(`[end time]: Sat Sep 12 2020  17:00:00`);
-    message.channel.send(`[recurring type]: weekly, daily, monthly, null`
-  } else if (`${prefix}${command}` === `${prefix}commands`) {
-    if (!args.length) {
-      return message.channel.send(`You didn't provide any arguments, ${message.author}!`);
-    }
-    message.channel.send('');
+    message.channel.send('!update-event [event-id] [start time] [end time]');
+    // message.channel.send(`[event-name]: Test-Meeting`);
+    // message.channel.send(`[start time]: Sat Sep 12 2020  15:00:00`);
+    // message.channel.send(`[end time]: Sat Sep 12 2020  17:00:00`);
+    // message.channel.send(`[recurring type]: weekly, daily, monthly, null`
+  } else if (`${prefix}${command}` === `${prefix}update-event`) {
+    if (!args.length < 2 || args.length > 2) {
+      return message.channel.send(`You didn't provide correct arguments, ${message.author}!`);
+    } else {
+			auth = gCalendarAPI.giveAuth();
+			response = gCalendarAPI.calendarAPIController(command, args);
+			console.log(response);
+		}
 		//message.channel.send(`Command name: ${command}\nArguments: ${args}`);
   }
 })

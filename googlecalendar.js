@@ -21,7 +21,7 @@ const TOKEN_PATH = 'token.json';
 fs.readFile('credentials.json', (err, content) => {
   if (err) return console.log('Error loading client secret file:', err);
   // Authorize a client with credentials, then call the Google Calendar API.
-  authorize(JSON.parse(content), getActionFromUser);
+  authorize(JSON.parse(content), giveAuth);
   //authorize(JSON.parse(content), addEvent);
 });
 
@@ -176,7 +176,7 @@ function deleteEvent(auth, evId) {
   })
 }
 
-function updateEvent(auth, evId) {
+function updateEvent(auth, evId, startTime, endTime) {
   const calendar = google.calendar({
     version: 'v3',
     auth
@@ -197,11 +197,11 @@ function updateEvent(auth, evId) {
         event = item;
       }
     });
-
-    var time1 = 'Sat Sep 12 2020  15:00:00 GMT-0400 (IST)'
-    var time2 = 'Sat Sep 12 2020  17:00:00 GMT-0400 (IST)'
-    event.start.dateTime = DateTime.isoString(time1);
-    event.end.dateTime = DateTime.isoString(time2);
+    var timeZoneModifier = 'GMT-0400 (IST)';
+    var startTimeFormatted =  'startTime' + ' ' + timeZoneModifier;
+    var endTimeFormatted = 'Sat Sep 12 2020  17:00:00' + ' ' + timeZoneModifier;
+    event.start.dateTime = DateTime.isoString(startTimeFormatted);
+    event.end.dateTime = DateTime.isoString(endTimeFormatted);
   calendar.events.update({
     auth: auth,
     calendarId: 'primary',
@@ -213,6 +213,7 @@ function updateEvent(auth, evId) {
 
     if (event) {
       console.log('Booked event:')
+      return "Event updated";
       console.log(event)
     }
   })
@@ -286,15 +287,19 @@ function getActionFromUser(auth) {
   });
 }
 
+function giveAuth(auth) {
+  return auth;
+}
+
 function calendarAPIController(auth, userCmd, userArgs) {
   switch(userCmd) {
     case 'update':
-      updateEvent(userArgs[0], userArgs[1], userArgs[2], userArgs[3]);
+    var eventId = userArgs[0];
+    var startTime = userArgs[1];
+    var endTime = userArgs[2];
+    updateEvent(auth, userArgs[0], userArgs[1], userArgs[2]);
+    break;
   }
-  if(userCmd === 'update') {
-    updateEvent
-  }
-  return status;
 }
 
 //check for events at every day...
