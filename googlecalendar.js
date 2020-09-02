@@ -1,8 +1,12 @@
 const fs = require('fs');
 const readline = require('readline');
-const {google} = require('googleapis');
+const {
+  google
+} = require('googleapis');
 const axios = require('axios');
 const stdin = process.openStdin();
+const lodash = require('lodash');
+const DateTime = require('datetime-converter-nodejs');
 
 
 // If modifying these scopes, delete token.json.
@@ -127,9 +131,9 @@ function addEvent(auth) {
       'dateTime': '2020-09-05T17:00:00-04:00',
       'timeZone': 'America/New_York',
     },
-    'recurrence': [
-      'RRULE:FREQ=WEEKLY;INTERVAL=1'
-    ],
+    // 'recurrence': [
+    //   'RRULE:FREQ=WEEKLY;INTERVAL=1'
+    // ],
     'attendees': [{
         'email': 'test@gmail.com'
       },
@@ -155,12 +159,99 @@ function addEvent(auth) {
   });
 }
 
+function deleteEvent(auth, evId) {
+  const calendar = google.calendar({
+    version: 'v3',
+    auth
+  })
+  console.log(evId)
+  calendar.events.delete({
+    calendarId: 'primary',
+    eventId: evId
+  }, (err, res) => {
+    if (err) return console.log(err)
+    if (res) {
+      console.log('Event deleted!')
+    }
+  })
+}
+
+function updateEvent(auth, evId) {
+  const calendar = google.calendar({
+    version: 'v3',
+    auth
+  })
+  calendar.events.list({
+    calendarId: 'primary',
+    timeMin: (new Date()).toISOString(),
+    maxResults: 10,
+    singleEvents: true,
+    orderBy: 'startTime',
+  }, (err, res) => {
+    if (err) return console.log('The API returned an error: ' + err);
+    const events = res.data.items;
+    console.log(evId)
+    var event;
+    events.forEach((item, i) => {
+      if (item.id === evId) {
+        event = item;
+      }
+    });
+
+    var time1 = 'Sat Sep 12 2020  15:00:00 GMT+0500 (IST)'
+    var time2 = 'Sat Sep 12 2020  17:00:00 GMT+0500 (IST)'
+    event.start.dateTime = DateTime.isoString(time1);
+    event.end.dateTime = DateTime.isoString(time2);
+  calendar.events.update({
+    auth: auth,
+    calendarId: 'primary',
+    eventId: evId,
+    resource: event,
+  }, (err, res) => {
+    if (err) return console.log(err)
+    const event = res.data
+
+    if (event) {
+      console.log('Booked event:')
+      console.log(event)
+    }
+  })
+  // console.log(DateTime.isoString(time1));
+  // console.log(DateTime.isoString(time2));
+
+
+  //     var event = lodash.map(events, function(x) {
+  //     if (x.id == "nbn00vmlp8esb0jsavidudqj68_20200912T140000") return x;
+  // });
+  // event = lodash.without(event, undefined)
+
+
+});
+
+// const calendar = google.calendar({
+//   version: 'v3',
+//   auth
+// })
+// console.log(evId)
+// calendar.events.update({
+//   calendarId: 'primary',
+//   eventId: evId,
+//   event: event
+// }, (err, res) => {
+//   if (err) return console.log(err)
+//   if (res) {
+//     console.log('Event updated!')
+//   }
+// })
+}
+
 function getActionFromUser(auth) {
   const numberOfListedEvents = 100
   console.log(`10 - Lists your ${numberOfListedEvents} first Google calendar events`)
   // console.log(`11 - Lists your ${numberOfListedEvents} first Google calendar events from Today`)
   console.log('20 - Inserts new event for tomorrow')
   console.log('30 - Delete an event by ID')
+  console.log('40 - Update an event by ID')
   console.log('\n0 - Exit')
   console.log('\n')
   console.log('Choose an action:')
@@ -177,31 +268,22 @@ function getActionFromUser(auth) {
         addEvent(auth)
         break
       case 30:
-        console.log('Enter event id')
-        stdin.addListener("data", function(d) {
-              convertedId = (String(d))
-              deleteEvent(auth, convertedId)
-        });
+        // console.log('Enter event id')
+        // stdin.addListener("data", function(d) {
+        //   console.log(d. + "ok")
+        //       convertedId = (String(d))
+      //  deleteEvent(auth, "nbn00vmlp8esb0jsavidudqj68_20200905T140000Z")  //delete single
+      deleteEvent(auth, "nbn00vmlp8esb0jsavidudqj68") //delete recurring
+        // });
+        break
+      case 40:
+        updateEvent(auth, "ip4s5heeb3co0ipj9q97sttas0")
         break
       case 0:
         process.exit()
         break
     }
   });
-}
-
-function deleteEvent(auth, evId) {
-  const calendar = google.calendar({version: 'v3', auth})
-  console.log(evId)
-  calendar.events.delete({
-    calendarId: 'primary',
-    eventId: evId
-  }, (err, res) => {
-    if (err) return console.log(err)
-    if (res) {
-      console.log('Event deleted!')
-    }
-  })
 }
 
 //check for events at every day...
