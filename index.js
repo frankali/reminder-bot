@@ -23,11 +23,11 @@ client.on('message', message => {
   if (!message.content.startsWith(prefix) || message.author.bot) return;
   const args = message.content.slice(prefix.length).trim().split(' ');
   const command = args.shift().toLowerCase();
-  if (command === `${prefix}ping`) {
+  if (message.content === `${prefix}ping`) {
     message.channel.send('Pong.');
-  } else if (command === `${prefix}beep`) {
+  } else if (message.content === `${prefix}beep`) {
     message.channel.send('Boop.');
-  } else if (command === `${prefix}test`) {
+  } else if (message.content === `${prefix}test`) {
     if (!args.length) {
       return message.channel.send(`You didn't provide any arguments, ${message.author}!`);
     }
