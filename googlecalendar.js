@@ -26,39 +26,12 @@ fs.readFile('credentials.json', (err, content) => {
     client_secret,
     client_id,
     redirect_uris
-  } = content.installed;
+  } = JSON.parse(content).installed;
 
   auth = new google.auth.OAuth2(
     client_id, client_secret, redirect_uris[0]);
-  
-  // Authorize a client with credentials, then call the Google Calendar API.
-  //authorize(JSON.parse(content), addEvent);
+    getActionFromUser()
 });
-
-/**
- * Create an OAuth2 client with the given credentials, and then execute the
- * given callback function.
- * @param {Object} credentials The authorization client credentials.
- * @param {function} callback The callback to call with the authorized client.
- */
-
-
-function authorize(credentials, callback) {
-  const {
-    client_secret,
-    client_id,
-    redirect_uris
-  } = credentials.installed;
-  const oAuth2Client = new google.auth.OAuth2(
-    client_id, client_secret, redirect_uris[0]);
-
-  // Check if we have previously stored a token.
-  fs.readFile(TOKEN_PATH, (err, token) => {
-    if (err) return getAccessToken(oAuth2Client, callback);
-    oAuth2Client.setCredentials(JSON.parse(token));
-    callback(oAuth2Client);
-  });
-}
 
 /**
  * Get and store new token after prompting for user authorization, and then
@@ -66,7 +39,7 @@ function authorize(credentials, callback) {
  * @param {google.auth.OAuth2} oAuth2Client The OAuth2 client to get token for.
  * @param {getEventsCallback} callback The callback for the authorized client.
  */
-function getAccessToken(callback, userArgs) {
+function getAccessToken(callback, userArgs = []) {
   const authUrl = auth.generateAuthUrl({
     access_type: 'offline',
     scope: SCOPES,
@@ -251,13 +224,13 @@ function getActionFromUser() {
   stdin.addListener("data", function(d) {
     switch (Number(d)) {
       case 10:
-        listEvents(auth)
+        getAccessToken(listEvents)
         break
         // case 11:
         //   listEvents(auth, numberOfListedEvents)
         //   break
       case 20:
-        addEvent(auth)
+        getAccessToken(addEvent)
         break
       case 30:
         // console.log('Enter event id')
@@ -265,11 +238,11 @@ function getActionFromUser() {
         //   console.log(d. + "ok")
         //       convertedId = (String(d))
       //  deleteEvent(auth, "nbn00vmlp8esb0jsavidudqj68_20200905T140000Z")  //delete single
-      deleteEvent(auth, "nbn00vmlp8esb0jsavidudqj68") //delete recurring
+        getAccessToken(deleteEvent, ["nbn00vmlp8esb0jsavidudqj68"]) //delete recurring
         // });
         break
       case 40:
-        updateEvent(auth, "ip4s5heeb3co0ipj9q97sttas0")
+        getAccessToken(updateEvent, ["ip4s5heeb3co0ipj9q97sttas0"])
         break
       case 0:
         process.exit()
