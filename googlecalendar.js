@@ -8,6 +8,7 @@ const stdin = process.openStdin();
 const lodash = require('lodash');
 const DateTime = require('datetime-converter-nodejs');
 
+let auth;
 
 // If modifying these scopes, delete token.json.
 const SCOPES = ['https://www.googleapis.com/auth/calendar'];
@@ -20,8 +21,17 @@ const TOKEN_PATH = 'token.json';
 // Load client secrets from a local file.
 fs.readFile('credentials.json', (err, content) => {
   if (err) return console.log('Error loading client secret file:', err);
+
+   const {
+    client_secret,
+    client_id,
+    redirect_uris
+  } = content.installed;
+
+  auth = new google.auth.OAuth2(
+    client_id, client_secret, redirect_uris[0]);
+  
   // Authorize a client with credentials, then call the Google Calendar API.
-  authorize(JSON.parse(content), giveAuth);
   //authorize(JSON.parse(content), addEvent);
 });
 
@@ -31,6 +41,8 @@ fs.readFile('credentials.json', (err, content) => {
  * @param {Object} credentials The authorization client credentials.
  * @param {function} callback The callback to call with the authorized client.
  */
+
+
 function authorize(credentials, callback) {
   const {
     client_secret,
@@ -54,8 +66,8 @@ function authorize(credentials, callback) {
  * @param {google.auth.OAuth2} oAuth2Client The OAuth2 client to get token for.
  * @param {getEventsCallback} callback The callback for the authorized client.
  */
-function getAccessToken(oAuth2Client, callback) {
-  const authUrl = oAuth2Client.generateAuthUrl({
+function getAccessToken(callback, userArgs) {
+  const authUrl = auth.generateAuthUrl({
     access_type: 'offline',
     scope: SCOPES,
   });
@@ -66,15 +78,10 @@ function getAccessToken(oAuth2Client, callback) {
   });
   rl.question('Enter the code from that page here: ', (code) => {
     rl.close();
-    oAuth2Client.getToken(code, (err, token) => {
+    auth.getToken(code, (err, token) => {
       if (err) return console.error('Error retrieving access token', err);
-      oAuth2Client.setCredentials(token);
-      // Store the token to disk for later program executions
-      fs.writeFile(TOKEN_PATH, JSON.stringify(token), (err) => {
-        if (err) return console.error(err);
-        console.log('Token stored to', TOKEN_PATH);
-      });
-      callback(oAuth2Client);
+      auth.setCredentials(token);
+      callback(auth, ...userArgs);
     });
   });
 }
@@ -87,7 +94,7 @@ function getAccessToken(oAuth2Client, callback) {
  * Lists the next 10 events on the user's primary calendar.
  * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
  */
-function listEvents(auth) {
+function listEvents() {
   const calendar = google.calendar({
     version: 'v3',
     auth
@@ -118,7 +125,7 @@ function listEvents(auth) {
  * Lists the next 10 events on the user's primary calendar.
  * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
  */
-function addEvent(auth) {
+function addEvent() {
   var event = {
     'summary': 'Project-TBD: Meeting', //variable
     'location': 'Discord: Project-TBD Channel',
@@ -159,7 +166,7 @@ function addEvent(auth) {
   });
 }
 
-function deleteEvent(auth, evId) {
+function deleteEvent(evId) {
   const calendar = google.calendar({
     version: 'v3',
     auth
@@ -176,7 +183,7 @@ function deleteEvent(auth, evId) {
   })
 }
 
-function updateEvent(auth, evId, startTime, endTime) {
+function updateEvent(evId, startTime, endTime) {
   const calendar = google.calendar({
     version: 'v3',
     auth
@@ -228,25 +235,9 @@ function updateEvent(auth, evId, startTime, endTime) {
 
 
 });
-
-// const calendar = google.calendar({
-//   version: 'v3',
-//   auth
-// })
-// console.log(evId)
-// calendar.events.update({
-//   calendarId: 'primary',
-//   eventId: evId,
-//   event: event
-// }, (err, res) => {
-//   if (err) return console.log(err)
-//   if (res) {
-//     console.log('Event updated!')
-//   }
-// })
 }
 
-function getActionFromUser(auth) {
+function getActionFromUser() {
   const numberOfListedEvents = 100
   console.log(`10 - Lists your ${numberOfListedEvents} first Google calendar events`)
   // console.log(`11 - Lists your ${numberOfListedEvents} first Google calendar events from Today`)
@@ -287,17 +278,14 @@ function getActionFromUser(auth) {
   });
 }
 
-function giveAuth(auth) {
-  return auth;
-}
 
-function calendarAPIController(auth, userCmd, userArgs) {
+function calendarAPIController(userCmd, userArgs) {
   switch(userCmd) {
     case 'update':
     var eventId = userArgs[0];
     var startTime = userArgs[1];
     var endTime = userArgs[2];
-    updateEvent(auth, userArgs[0], userArgs[1], userArgs[2]);
+    getAccessToken(updateEvent, userArgs);
     break;
   }
 }
@@ -305,3 +293,6 @@ function calendarAPIController(auth, userCmd, userArgs) {
 //check for events at every day...
 // when new event is added, re-check events for reminders.. -> send out if happening that delayed
 // same for editEvent
+module.exports = {
+  default: calendarAPIController,
+}
