@@ -21,26 +21,21 @@ const SCOPES = ['https://www.googleapis.com/auth/calendar'];
 // created automatically when the authorization flow completes for the first
 // time.
 const TOKEN_PATH = 'token.json';
-//addEvent();
 
 // Load client secrets from a local file.
-fs.readFile('credentials.json', (err, content) => {
-  if (err) return console.log('Error loading client secret file:', err);
+  
+const {
+  client_secret,
+  client_id,
+  redirect_uri
+} = process.env;
 
-   const {
-    client_secret,
-    client_id,
-    redirect_uris
-  } = JSON.parse(content).installed;
+auth = new google.auth.OAuth2(
+  client_id, client_secret, redirect_uri);
 
-  auth = new google.auth.OAuth2(
-    client_id, client_secret, redirect_uris[0]);
-
-  fs.readFile(TOKEN_PATH, (err, token) => {
-    if (err) return getAccessToken(null);
-    auth.setCredentials(JSON.parse(token));
-  });
-
+fs.readFile(TOKEN_PATH, (err, token) => {
+  if (err) return getAccessToken(null);
+  auth.setCredentials(JSON.parse(token));
 });
 
 /**
