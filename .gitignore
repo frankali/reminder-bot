@@ -104,5 +104,6 @@ dist
 .tern-port
 
 #discord sekret
-config.json 
-credentials
+config.json
+credentials.json
+token.json
