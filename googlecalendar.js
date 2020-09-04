@@ -7,8 +7,13 @@ const axios = require('axios');
 const stdin = process.openStdin();
 const lodash = require('lodash');
 const DateTime = require('datetime-converter-nodejs');
+const chrono = require('chrono-node');
+const moment = require('moment-timezone');
 
 let auth;
+let mapNumToEventId = {};
+
+const timezone = 'America/New_York';
 
 // If modifying these scopes, delete token.json.
 const SCOPES = ['https://www.googleapis.com/auth/calendar'];
@@ -30,7 +35,12 @@ fs.readFile('credentials.json', (err, content) => {
 
   auth = new google.auth.OAuth2(
     client_id, client_secret, redirect_uris[0]);
-    getActionFromUser()
+
+  fs.readFile(TOKEN_PATH, (err, token) => {
+    if (err) return getAccessToken(null);
+    auth.setCredentials(JSON.parse(token));
+  });
+
 });
 
 /**
@@ -43,6 +53,7 @@ function getAccessToken(callback, userArgs = []) {
   const authUrl = auth.generateAuthUrl({
     access_type: 'offline',
     scope: SCOPES,
+    // approval_prompt: "force"
   });
   console.log('Authorize this app by visiting this url:', authUrl);
   const rl = readline.createInterface({
@@ -53,8 +64,15 @@ function getAccessToken(callback, userArgs = []) {
     rl.close();
     auth.getToken(code, (err, token) => {
       if (err) return console.error('Error retrieving access token', err);
+      console.log(123)
+      console.log(token);
       auth.setCredentials(token);
-      callback(auth, ...userArgs);
+      fs.writeFile(TOKEN_PATH, JSON.stringify(token), (err) => {
+        if (err) return console.error(err);
+        console.log('Token stored to', TOKEN_PATH);
+      });
+      if (callback)
+        callback(...userArgs);
     });
   });
 }
@@ -68,204 +86,175 @@ function getAccessToken(callback, userArgs = []) {
  * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
  */
 function listEvents() {
-  const calendar = google.calendar({
-    version: 'v3',
-    auth
-  });
-  calendar.events.list({
-    calendarId: 'primary',
-    timeMin: (new Date()).toISOString(),
-    maxResults: 10,
-    singleEvents: true,
-    orderBy: 'startTime',
-  }, (err, res) => {
-    if (err) return console.log('The API returned an error: ' + err);
-    const events = res.data.items;
-    if (events.length) {
-      console.log('Upcoming 10 events:');
-      events.map((event, i) => {
-        const start = event.start.dateTime || event.start.date; //convert this time to just "10PM"
-        console.log(`${start} - ${event.summary} - ${event.id} `);
-      });
-    } else {
-      console.log('No upcoming events found.');
-    }
+  //singleEvents -- boolean default false -> show al levents
+  return new Promise((resolve, reject) => {
+    let response = "";
+    const calendar = google.calendar({
+      version: 'v3',
+      auth
+    });
+    calendar.events.list({
+      calendarId: 'primary',
+      timeMin: (new Date()).toISOString(),
+      maxResults: 10,
+      singleEvents: true,
+      orderBy: 'startTime',
+      timeZone: timezone
+    }, (err, res) => {
+      if (err) reject('The API returned an error: ' + err);
+      const events = res.data.items;
+
+      if (events.length) {
+        response += "Upcoming 10 events:\n";
+        Promise.all(events.map((event,i) => {
+          return new Promise((resolve, reject) => {
+            const startTime = moment.tz(event.start.dateTime, timezone).format('L LT')
+            const endTime = moment.tz(event.end.dateTime, timezone).format('L LT')
+
+            mapNumToEventId[i+1] = event.id;
+            //convert this time to just "10PM"
+            resolve(`${i+1}: ${event.summary} -  ${startTime} - ${endTime} - ${event.id}`);
+          });
+        })).then(responses => resolve(responses.join('\n')));
+      } else {
+        resolve('No upcoming events found.');
+      }
+    });
   });
 }
 
+
+function parseEventToISO(startTime, duration) {
+  console.log(startTime, duration)
+  let parsedDate = chrono.parseDate(startTime);
+  let offset = moment.tz(timezone).utcOffset();
+  let adjusted_startTime = moment(parsedDate).subtract(offset, 'minutes').tz(timezone).toISOString();
+  let adjusted_endTime = moment(adjusted_startTime).add(duration, 'minutes').tz(timezone).toISOString();
+  console.log(adjusted_startTime + adjusted_endTime)
+  return {adjusted_startTime, adjusted_endTime};
+}
 
 /**
  * Lists the next 10 events on the user's primary calendar.
  * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
  */
-function addEvent() {
-  var event = {
-    'summary': 'Project-TBD: Meeting', //variable
-    'location': 'Discord: Project-TBD Channel',
-    'description': 'A Project TBD Meeting',
-    'start': {
-      'dateTime': '2020-09-05T02:00:00-05:00',
-      'timeZone': 'America/New_York',
-    },
-    'end': {
-      'dateTime': '2020-09-05T17:00:00-04:00',
-      'timeZone': 'America/New_York',
-    },
-    // 'recurrence': [
-    //   'RRULE:FREQ=WEEKLY;INTERVAL=1'
-    // ],
-    'attendees': [{
-        'email': 'test@gmail.com'
+function addEvent(name, startTime, duration=60, recurrence=false) {
+  //2020-09-05T02:00:00-05:00
+  //2020-09-05T17:00:00-04:00
+  return new Promise((resolve, reject) => {
+    let {adjusted_startTime, adjusted_endTime} = parseEventToISO(startTime, duration);
+    console.log(adjusted_startTime);
+    console.log(adjusted_endTime);
+    var event = {
+      'summary': name, //variable
+      'location': 'Discord: Project-TBD Channel',
+      'description': name,
+      'start': {
+        'dateTime': adjusted_startTime,
+        'timeZone': timezone,
       },
-      {
-        'email': 'sbrin@example.com'
+      'end': {
+        'dateTime': adjusted_endTime,
+        'timeZone': timezone,
       },
-    ],
-  };
-  const calendar = google.calendar({
-    version: 'v3',
-    auth
-  });
-  calendar.events.insert({
-    auth: auth,
-    calendarId: 'primary',
-    resource: event,
-  }, function(err, event) {
-    if (err) {
-      console.log('There was an error contacting the Calendar service: ' + err);
-      return;
-    }
-    console.log('Event created: %s', event.htmlLink);
-  });
-}
+    };
+    if (recurrence)
+      event['recurrence'] = ['RRULE:FREQ=WEEKLY;INTERVAL=1'];
 
-function deleteEvent(evId) {
-  const calendar = google.calendar({
-    version: 'v3',
-    auth
-  })
-  console.log(evId)
-  calendar.events.delete({
-    calendarId: 'primary',
-    eventId: evId
-  }, (err, res) => {
-    if (err) return console.log(err)
-    if (res) {
-      console.log('Event deleted!')
-    }
-  })
-}
-
-function updateEvent(evId, startTime, endTime) {
-  const calendar = google.calendar({
-    version: 'v3',
-    auth
-  })
-  calendar.events.list({
-    calendarId: 'primary',
-    timeMin: (new Date()).toISOString(),
-    maxResults: 10,
-    singleEvents: true,
-    orderBy: 'startTime',
-  }, (err, res) => {
-    if (err) return console.log('The API returned an error: ' + err);
-    const events = res.data.items;
-    console.log(evId)
-    var event;
-    events.forEach((item, i) => {
-      if (item.id === evId) {
-        event = item;
-      }
+    const calendar = google.calendar({
+      version: 'v3',
+      auth
     });
-    var timeZoneModifier = 'GMT-0400 (IST)';
-    var startTimeFormatted =  'startTime' + ' ' + timeZoneModifier;
-    var endTimeFormatted = 'Sat Sep 12 2020  17:00:00' + ' ' + timeZoneModifier;
-    event.start.dateTime = DateTime.isoString(startTimeFormatted);
-    event.end.dateTime = DateTime.isoString(endTimeFormatted);
-  calendar.events.update({
-    auth: auth,
-    calendarId: 'primary',
-    eventId: evId,
-    resource: event,
-  }, (err, res) => {
-    if (err) return console.log(err)
-    const event = res.data
-
-    if (event) {
-      console.log('Booked event:')
-      return "Event updated";
-      console.log(event)
-    }
-  })
-  // console.log(DateTime.isoString(time1));
-  // console.log(DateTime.isoString(time2));
-
-
-  //     var event = lodash.map(events, function(x) {
-  //     if (x.id == "nbn00vmlp8esb0jsavidudqj68_20200912T140000") return x;
-  // });
-  // event = lodash.without(event, undefined)
-
-
-});
-}
-
-function getActionFromUser() {
-  const numberOfListedEvents = 100
-  console.log(`10 - Lists your ${numberOfListedEvents} first Google calendar events`)
-  // console.log(`11 - Lists your ${numberOfListedEvents} first Google calendar events from Today`)
-  console.log('20 - Inserts new event for tomorrow')
-  console.log('30 - Delete an event by ID')
-  console.log('40 - Update an event by ID')
-  console.log('\n0 - Exit')
-  console.log('\n')
-  console.log('Choose an action:')
-
-  stdin.addListener("data", function(d) {
-    switch (Number(d)) {
-      case 10:
-        getAccessToken(listEvents)
-        break
-        // case 11:
-        //   listEvents(auth, numberOfListedEvents)
-        //   break
-      case 20:
-        getAccessToken(addEvent)
-        break
-      case 30:
-        // console.log('Enter event id')
-        // stdin.addListener("data", function(d) {
-        //   console.log(d. + "ok")
-        //       convertedId = (String(d))
-      //  deleteEvent(auth, "nbn00vmlp8esb0jsavidudqj68_20200905T140000Z")  //delete single
-        getAccessToken(deleteEvent, ["nbn00vmlp8esb0jsavidudqj68"]) //delete recurring
-        // });
-        break
-      case 40:
-        getAccessToken(updateEvent, ["ip4s5heeb3co0ipj9q97sttas0"])
-        break
-      case 0:
-        process.exit()
-        break
-    }
+    calendar.events.insert({
+      auth: auth,
+      calendarId: 'primary',
+      resource: event,
+    }, function(err, event) {
+      console.log("in insert")
+      if (err) {
+        reject('There was an error contacting the Calendar service: ' + err);
+      }
+      response = 'Event created!';
+      resolve(response);
+    });
   });
 }
 
+function deleteEvent(id) {
+  //recurringEventId - field of eventsId
+   return new Promise((resolve, reject) => {
+    const calendar = google.calendar({
+      version: 'v3',
+      auth
+    })
+    calendar.events.delete({
+      calendarId: 'primary',
+      eventId: mapNumToEventId[id]
+    }, (err, res) => {
+      if (err) reject(err)
+      if (res) {
+        response = "Event deleted";
+        resolve(response)
+      }
+    })
+  });
+}
+
+function updateEvent(evId, startTime, duration=60) {
+   return new Promise((resolve, reject) => {
+    const calendar = google.calendar({
+      version: 'v3',
+      auth
+    })
+
+    calendar.events.get({
+      calendarId: 'primary',
+      eventId: evId,
+    }, (err, res) => {
+      if (err) return console.log(err)
+      const event = res.data;
+      let {adjusted_startTime, adjusted_endTime} = parseEventToISO(startTime, duration);
+      event.start.dateTime = adjusted_startTime;
+      event.end.dateTime = adjusted_endTime;
+
+      calendar.events.update({
+        auth: auth,
+        calendarId: 'primary',
+        eventId: evId,
+        resource: event,
+      }, (err, res) => {
+        if (err) reject(err)
+        const event = res.data
+
+        if (event) {
+          let response = ('Event has been updated!')
+          resolve(response);
+        }
+      });
+    });
+  });
+}
 
 function calendarAPIController(userCmd, userArgs) {
   switch(userCmd) {
+    case 'list':
+    console.log('list')
+      return listEvents()
+      break;
+    case 'add':
+      return addEvent(...userArgs) //id, start time, endtime
+      break;
+    case 'delete':
+      return deleteEvent(...userArgs) //id, start time, endtime
+      break;
     case 'update':
-    var eventId = userArgs[0];
-    var startTime = userArgs[1];
-    var endTime = userArgs[2];
-    getAccessToken(updateEvent, userArgs);
-    break;
+      return updateEvent(...userArgs) //id, start time, endtime
+      break;
+
   }
 }
 
 //check for events at every day...
 // when new event is added, re-check events for reminders.. -> send out if happening that delayed
 // same for editEvent
-module.exports = {
-  default: calendarAPIController,
-}
+module.exports = calendarAPIController;
